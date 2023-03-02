@@ -83,3 +83,8 @@ m25p80_read_data(void *s, uint32_t pos, uint8_t v) "[%p] Read data 0x%"PRIx32"=0
 m25p80_read_sfdp(void *s, uint32_t addr, uint8_t v) "[%p] Read SFDP 0x%"PRIx32"=0x%"PRIx8
 m25p80_binding(void *s) "[%p] Binding to IF_MTD drive"
 m25p80_binding_no_bdrv(void *s) "[%p] No BDRV - binding to RAM"
+
+# stm32f4xx_flash.c
+stm32f4xx_flash_set_irq(int irq, int leve) "Set FLASH: %d to %d"
+stm32f4xx_flash_read(uint64_t addr) "reg read: addr: 0x%" PRIx64 " "
+stm32f4xx_flash_write(uint64_t addr, uint64_t data) "reg write: addr: 0x%" PRIx64 " val: 0x%" PRIx64 ""

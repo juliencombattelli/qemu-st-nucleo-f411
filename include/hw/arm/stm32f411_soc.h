@@ -29,6 +29,7 @@
 #include "hw/timer/stm32f2xx_timer.h"
 #include "hw/char/stm32f2xx_usart.h"
 #include "hw/adc/stm32f2xx_adc.h"
+#include "hw/block/stm32f4xx_flash.h"
 #include "hw/misc/stm32f4xx_exti.h"
 #include "hw/misc/stm32f4xx_rcc.h"
 #include "hw/or-irq.h"
@@ -61,6 +62,7 @@ struct STM32F411State
 
     STM32F4xxRccState rcc;
     STM32F4xxSyscfgState syscfg;
+    STM32F4xxFlashState flash_r;
     STM32F4xxExtiState exti;
     STM32F2XXUsartState usart[STM_NUM_USARTS];
     STM32F2XXTimerState timer[STM_NUM_TIMERS];

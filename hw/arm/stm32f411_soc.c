@@ -34,6 +34,7 @@
 
 #define RCC_ADDR 0x40023800
 #define SYSCFG_ADDR 0x40013800
+#define FLASH_R_ADDR 0x40023C00
 static const uint32_t usart_addr[] = {
     0x40011000, // USART1
     0x40004400, // USART2
@@ -61,6 +62,7 @@ static const uint32_t spi_addr[] = {
 
 #define RCC_IRQ 5
 #define SYSCFG_IRQ 71
+#define FLASH_R_IRQ 4
 static const int usart_irq[] = {
     37, // USART1
     38, // USART2
@@ -109,6 +111,8 @@ static void stm32f411_soc_initfn(Object *obj)
     object_initialize_child(obj, "rcc", &s->rcc, TYPE_STM32F4XX_RCC);
 
     object_initialize_child(obj, "syscfg", &s->syscfg, TYPE_STM32F4XX_SYSCFG);
+
+    object_initialize_child(obj, "flash_r", &s->flash_r, TYPE_STM32F4XX_FLASH);
 
     for (i = 0; i < STM_NUM_USARTS; i++)
     {
@@ -228,6 +232,16 @@ static void stm32f411_soc_realize(DeviceState *dev_soc, Error **errp)
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, SYSCFG_ADDR);
     sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, SYSCFG_IRQ));
+
+    /* Flash controller */
+    dev = DEVICE(&s->flash_r);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->flash_r), errp))
+    {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, FLASH_R_ADDR);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, FLASH_R_IRQ));
 
     /* Attach UART (uses USART registers) and USART controllers */
     for (i = 0; i < STM_NUM_USARTS; i++)
@@ -350,7 +364,6 @@ static void stm32f411_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("GPIOH", 0x40021C00, 0x400);
     create_unimplemented_device("GPIOI", 0x40022000, 0x400);
     create_unimplemented_device("CRC", 0x40023000, 0x400);
-    create_unimplemented_device("Flash Int", 0x40023C00, 0x400);
     create_unimplemented_device("BKPSRAM", 0x40024000, 0x400);
     create_unimplemented_device("DMA1", 0x40026000, 0x400);
     create_unimplemented_device("DMA2", 0x40026400, 0x400);
