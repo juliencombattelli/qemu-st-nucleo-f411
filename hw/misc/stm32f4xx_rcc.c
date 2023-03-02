@@ -151,6 +151,9 @@ static uint64_t stm32f4xx_rcc_read(void *opaque, hwaddr addr,
     return 0;
 }
 
+/**
+ * Set value with bits from mask if condition is true, clear otherwise.
+ */
 static inline uint32_t set_or_clear_if(uint32_t value, uint32_t mask, uint32_t condition)
 {
     if (condition != 0)
@@ -164,9 +167,6 @@ static inline uint32_t set_or_clear_if(uint32_t value, uint32_t mask, uint32_t c
     return value;
 }
 
-/**
- * Perform additional operations on some bits depending on the value of other bits of the register value
- */
 static uint32_t handle_rcc_cr_write(uint32_t rcc_cr)
 {
     rcc_cr = set_or_clear_if(rcc_cr, BIT(1), rcc_cr & BIT(0)); /* Set or clear HSIRDY depending on HSION */
@@ -174,6 +174,16 @@ static uint32_t handle_rcc_cr_write(uint32_t rcc_cr)
     rcc_cr = set_or_clear_if(rcc_cr, BIT(25), rcc_cr & BIT(24)); /* Set or clear PLLRDY depending on PLLON */
     rcc_cr = set_or_clear_if(rcc_cr, BIT(27), rcc_cr & BIT(26)); /* Set or clear PLLI2SRDY depending on PLLI2SON */
     return rcc_cr;
+}
+
+static uint32_t handle_rcc_cfgr_write(uint32_t rcc_cfgr)
+{
+    // Update the clock status (bits[3:2]) with the selected clock (bits[1:0])
+    const uint32_t sysclk_switch_status_offset = 2;
+    const uint32_t sysclk_switch_status_bits = 0x3 << sysclk_switch_status_offset;
+    const uint32_t sysclk_switch_bits = 0x3;
+    const uint32_t sysclk_switch = rcc_cfgr & sysclk_switch_bits;
+    return (rcc_cfgr & ~sysclk_switch_status_bits) | (sysclk_switch << sysclk_switch_status_offset);
 }
 
 static void stm32f4xx_rcc_write(void *opaque, hwaddr addr,
@@ -193,7 +203,7 @@ static void stm32f4xx_rcc_write(void *opaque, hwaddr addr,
         s->rcc_pllcfgr = value;
         return;
     case RCC_CFGR:
-        s->rcc_cfgr = value;
+        s->rcc_cfgr = handle_rcc_cfgr_write(value);
         return;
     case RCC_CIR:
         s->rcc_cir = value; // TODO handle reset of flag  bits when clear bits are set
