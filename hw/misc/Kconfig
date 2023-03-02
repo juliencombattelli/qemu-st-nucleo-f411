@@ -86,6 +86,9 @@ config STM32F4XX_SYSCFG
 config STM32F4XX_EXTI
     bool
 
+config STM32F4XX_RCC
+    bool
+
 config MIPS_ITU
     bool
 
