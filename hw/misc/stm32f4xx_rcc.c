@@ -73,25 +73,25 @@ static void stm32f4xx_rcc_reset(DeviceState *dev)
     s->rcc_dckcfgr = 0x00000000;
 }
 
-static void stm32f4xx_rcc_set_irq(void *opaque, int irq, int level)
-{
-    STM32F4xxRccState *s = opaque;
+// static void stm32f4xx_rcc_set_irq(void *opaque, int irq, int level)
+// {
+//     STM32F4xxRccState *s = opaque;
 
-    trace_stm32f4xx_rcc_set_irq(irq, level);
+//     trace_stm32f4xx_rcc_set_irq(irq, level);
 
-    g_assert(irq < RCC_IRQ_COUNT);
+//     // g_assert(irq < RCC_IRQ_COUNT);
 
-    if (level)
-    {
-        const uint32_t irq_enable_bit = BIT(irq + RCC_CIR_ENABLE_BIT_OFFSET);
-        if ((irq == RCC_IRQ_CSS) || (s->rcc_cir & irq_enable_bit))
-        {
-            s->rcc_cir |= irq;
-        }
-    }
+//     if (level)
+//     {
+//         const uint32_t irq_enable_bit = BIT(irq + RCC_CIR_ENABLE_BIT_OFFSET);
+//         if ((irq == RCC_IRQ_CSS) || (s->rcc_cir & irq_enable_bit))
+//         {
+//             s->rcc_cir |= irq;
+//         }
+//     }
 
-    qemu_irq_pulse(s->irq);
-}
+//     qemu_irq_pulse(s->irq);
+// }
 
 static uint64_t stm32f4xx_rcc_read(void *opaque, hwaddr addr,
                                    unsigned int size)
@@ -198,6 +198,10 @@ static void stm32f4xx_rcc_write(void *opaque, hwaddr addr,
     {
     case RCC_CR:
         s->rcc_cr = handle_rcc_cr_write(value);
+        if ((s->rcc_cr & BIT(1)) /*&& (s->rcc_cir & BIT(10))*/) {
+            s->rcc_cir |= BIT(2); // Set HSI RDY interrupt flag
+            qemu_set_irq(s->irq, 1);
+        }
         return;
     case RCC_PLLCFGR:
         s->rcc_pllcfgr = value;
@@ -206,6 +210,11 @@ static void stm32f4xx_rcc_write(void *opaque, hwaddr addr,
         s->rcc_cfgr = handle_rcc_cfgr_write(value);
         return;
     case RCC_CIR:
+        if (value & BIT(18)) { // HSIRDYC request
+            value &= ~BIT(2); // clear the flag
+            value &= ~BIT(18); // clear the clear bit
+            qemu_set_irq(s->irq, 0);
+        }
         s->rcc_cir = value; // TODO handle reset of flag  bits when clear bits are set
         return;
     case RCC_AHB1RSTR:
@@ -281,8 +290,9 @@ static void stm32f4xx_rcc_init(Object *obj)
                           TYPE_STM32F4XX_RCC, 0x400);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
 
-    qdev_init_gpio_in(DEVICE(obj), stm32f4xx_rcc_set_irq,
-                      RCC_IRQ_COUNT);
+    qemu_set_irq(s->irq, 0);
+
+    // qdev_init_gpio_in(DEVICE(obj), stm32f4xx_rcc_set_irq, 1);
 }
 
 static const VMStateDescription vmstate_stm32f4xx_rcc = {
